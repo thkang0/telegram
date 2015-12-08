@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 #
-# github:      https://github.com/thkang0/telegram-bot
+# github:      https://github.com/thkang0/telegram
 #
 import telebot
 import socket
@@ -8,6 +8,7 @@ import struct
 import os
 import sys
 import ConfigParser
+import sqlite3
 
 bot = telebot.TeleBot("175881767:AAG6nfgAprdHkTjbK6JZdZdsE76cbu5kMhE")
 
@@ -28,8 +29,18 @@ def add_host_mac(host, mac):
     else:
         raise ValueError('Incorrect MAC address format')
 
+    try: 
+        mydb = sqlite3.connect("myhome.db")
+        cursor = mydb.cursor()
+
+    #cursor.execute("CREATE TABLE myhome(Host text, Mac text)")
     # insert host and mac into DB
-    return True
+        cursor.execute("INSERT INTO myhome VALUES(host, mac)")
+        mydb.commit()
+        mydb.close()
+        return True
+    except:
+      return False
 
 def del_host_mac(host):
     return True
@@ -85,14 +96,33 @@ def add_server(msg):
     if len(text.split()) == 3:
         host = text.split()[1]
         mac = text.split()[2]
-        add_host_mac(host, mac)    
+        if add_host_mac(host, mac):
+            bot.reply_to(msg, "Successfully added the host and mac_address")
     else:
         bot.reply_to(msg, "Incorrect command. It should be \"add_host host mac_address\"") 
 
+def list_servers():
+    mydb = sqlite3.connect("myhome.db")
+    cursor = mydb.cursor()
+    cursor.execute("SELECT * from myhome")
+    for r in cursor:
+        print "======="
+        print r
+    #return cursor
+    
 
-@bot.message_handler(commands='help')
-def help(message):
-    bot.reply_to(message, USAGE)
+@bot.message_handler(commands='list')
+def list(msg):
+    cid = msg.chat.id
+    text = msg.text
+    bot.send_chat_action(cid, 'typing')
+    try:
+        #servers = list_servers()
+        list_servers()
+    except:
+        print "Error"
+        return False
+    #bot.reply_to(msg, servers)
 
 #@bot.message_handler(func=lambda message: True)
 #def echo_all(message):
