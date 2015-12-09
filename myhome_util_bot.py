@@ -20,6 +20,17 @@ USAGE = u"""[사용법] 아래 명령어를 메시지로 보내거나 버튼을 
 /help  - (이 도움말 보여주기)
 """
 
+def list_servers():
+    print "====> list servers"
+    mydb = sqlite3.connect("myhome.db")
+    cursor = mydb.cursor()
+    cursor.execute("SELECT * FROM myhome;")
+    print cursor.fetchall()
+    for r in cursor:
+        print "======="
+        print r
+    #return cursor
+
 def add_host_mac(host, mac):
     if len(mac) == 12:
         pass
@@ -32,18 +43,27 @@ def add_host_mac(host, mac):
     try: 
         mydb = sqlite3.connect("myhome.db")
         cursor = mydb.cursor()
-
-    #cursor.execute("CREATE TABLE myhome(Host text, Mac text)")
-    # insert host and mac into DB
-        cursor.execute("INSERT INTO myhome VALUES(host, mac)")
+        print "====> host=%s, mac_address=%s" %(host, mac)
+        #cursor.execute("CREATE TABLE myhome(Host text, Mac text)")
+        # insert host and mac into DB
+        cursor.execute("INSERT INTO hosts VALUES(?,?)", (host,mac))
         mydb.commit()
+        cursor.execute("SELECT * FROM hosts;")
+        print cursor.fetchall()
         mydb.close()
         return True
     except:
+      print "Error during inserting data into DB"
       return False
 
 def del_host_mac(host):
-    return True
+    try: 
+        mydb = sqlite3.connect("myhome.db")
+        cursor = mydb.cursor()
+        return True
+    except:
+      print "Error during deleting data from DB"
+      return False
 
 def get_host_mac(host):
     return mac
@@ -101,14 +121,6 @@ def add_server(msg):
     else:
         bot.reply_to(msg, "Incorrect command. It should be \"add_host host mac_address\"") 
 
-def list_servers():
-    mydb = sqlite3.connect("myhome.db")
-    cursor = mydb.cursor()
-    cursor.execute("SELECT * from myhome")
-    for r in cursor:
-        print "======="
-        print r
-    #return cursor
     
 
 @bot.message_handler(commands='list')
@@ -128,5 +140,8 @@ def list(msg):
 #def echo_all(message):
 #    bot.reply_to(message, message.text)
 
-bot.polling()
+try:
+    bot.polling()
 
+except:
+    print "Error bot.polling"
