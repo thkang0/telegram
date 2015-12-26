@@ -12,24 +12,33 @@ import sqlite3
 
 bot = telebot.TeleBot("175881767:AAG6nfgAprdHkTjbK6JZdZdsE76cbu5kMhE")
 
-USAGE = u"""[사용법] 아래 명령어를 메시지로 보내거나 버튼을 누르시면 됩니다.
-/wol - (해당 서버에 wol packet을 보낸다. ex) wol server_name )
-/list - (현재 등록되어 있는 서버 목록)
-/add_host - (새로 추가할 서버 ex) add_host mylaptop XX:XX:XX:XX:XX:XX )
-/del_host - (기존에 등록된 서버 삭제 ex) del mylaptop )
-/help  - (이 도움말 보여주기)
+#USAGE = u"""[사용법] 아래 명령어를 메시지로 보내거나 버튼을 누르시면 됩니다.
+#/wol - (해당 서버에 wol packet을 보낸다. ex) wol server_name )
+#/list - (현재 등록되어 있는 서버 목록)
+#/add_host - (새로 추가할 서버 ex) add_host mylaptop XX:XX:XX:XX:XX:XX )
+#/del_host - (기존에 등록된 서버 삭제 ex) del mylaptop )
+#/help  - (이 도움말 보여주기)
+#"""
+
+USAGE = u"""[USAGE] send messages.
+/wol - (send wol packet. ex) wol server_name )
+/list - (show list machines)
+/add_host - (add  a new machine ex) add_host mylaptop XX:XX:XX:XX:XX:XX )
+/del_host - (delete a machine ex) del mylaptop )
+/help  - (show help)
 """
 
 def list_servers():
-    print "====> list servers"
-    mydb = sqlite3.connect("myhome.db")
-    cursor = mydb.cursor()
-    cursor.execute("SELECT * FROM myhome;")
-    print cursor.fetchall()
-    for r in cursor:
-        print "======="
-        print r
-    #return cursor
+    try:
+        mydb = sqlite3.connect("myhome.db")
+        cursor = mydb.cursor()
+        cursor.execute("SELECT * FROM hosts;")
+        servers_list = cursor.fetchall()
+        mydb.close()
+        return servers_list 
+    except sqlite3.OperationalError, msg:
+        print msg
+        return msg
 
 def add_host_mac(host, mac):
     if len(mac) == 12:
@@ -52,9 +61,11 @@ def add_host_mac(host, mac):
         print cursor.fetchall()
         mydb.close()
         return True
-    except:
-      print "Error during inserting data into DB"
-      return False
+    except sqlite3.OperationalError, msg:
+      print "=========> Error in sqlite"
+      print msg
+      return msg
+      #return False
 
 def del_host_mac(host):
     try: 
@@ -116,11 +127,14 @@ def add_server(msg):
     if len(text.split()) == 3:
         host = text.split()[1]
         mac = text.split()[2]
-        if add_host_mac(host, mac):
+        result = add_host_mac(host, mac)
+        if result == True:
             bot.reply_to(msg, "Successfully added the host and mac_address")
+        else:
+            print result
+            bot.reply_to(msg, result)
     else:
         bot.reply_to(msg, "Incorrect command. It should be \"add_host host mac_address\"") 
-
     
 
 @bot.message_handler(commands='list')
@@ -128,13 +142,10 @@ def list(msg):
     cid = msg.chat.id
     text = msg.text
     bot.send_chat_action(cid, 'typing')
-    try:
-        #servers = list_servers()
-        list_servers()
-    except:
-        print "Error"
-        return False
-    #bot.reply_to(msg, servers)
+    servers = list_servers()
+    print "====="
+    print servers
+    bot.reply_to(msg, servers[:1])
 
 #@bot.message_handler(func=lambda message: True)
 #def echo_all(message):
